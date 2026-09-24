@@ -1,0 +1,68 @@
+workflows:
+  ios-app-store:
+    name: iOS App Store
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+
+    # 在 Codemagic → Team settings → Team integrations → Developer Portal
+    # 添加 App Store Connect API Key 后，把下面的名字改成你保存时用的名称
+    integrations:
+      app_store_connect: Apple API Key
+
+    environment:
+      # 在 Codemagic → Application / Team variables 里创建同名变量组
+      # 组内至少包含：CERTIFICATE_PRIVATE_KEY（用于自动创建/拉取发布证书）
+      groups:
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: "SZD.Toamge2"
+        XCODE_PROJECT: "Toamge2.xcodeproj"
+        XCODE_SCHEME: "Toamge2"
+        # App Store Connect → 你的 App → App 信息 → Apple ID（纯数字）
+        # 若 App 尚未创建，可先填 0，首次上传前再改成真实 Apple ID
+        APP_STORE_APPLE_ID: 0
+      xcode: latest
+
+    scripts:
+      - name: Set up keychain
+        script: |
+          keychain initialize
+
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+
+      - name: Increment build number
+        script: |
+          set -euo pipefail
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          agvtool new-version -all $((LATEST_BUILD_NUMBER + 1))
+
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        # 上传到 App Store Connect 并提交 TestFlight
+        submit_to_testflight: true
+        # 如需直接提交 App Store 审核，改为 true
+        submit_to_app_store: false
