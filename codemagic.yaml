@@ -6,7 +6,7 @@ workflows:
 
     # 必须和 Codemagic → Integrations 里 API Key 的名称一致
     integrations:
-      app_store_connect: test1
+      app_store_connect: test2
 
     environment:
       # 使用你在 Code signing identities 里上传的证书 + 描述文件
