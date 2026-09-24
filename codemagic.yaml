@@ -15,7 +15,7 @@ workflows:
       groups:
         - app_store_credentials
       vars:
-        BUNDLE_ID: "SZD.Toamge2"
+        BUNDLE_ID: "com.huankecontact.test"
         XCODE_PROJECT: "Toamge2.xcodeproj"
         XCODE_SCHEME: "Toamge2"
         # App Store Connect → 你的 App → App 信息 → Apple ID（纯数字）
